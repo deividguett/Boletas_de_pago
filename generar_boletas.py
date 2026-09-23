@@ -35,6 +35,9 @@ for _, emp in empleados.iterrows():
     cargo = emp['CARGO']
     sueldo_basico = SUELDOS_POR_CARGO.get(str(cargo).upper(), 1025.00)
 
+    # Asignación de bono fijo
+    bono = 200.00
+
     sub_df = df_asistencia[df_asistencia['DNI'] == dni]
 
     cant_faltas = (sub_df['ESTADO'] == 'FALTA').sum()
@@ -50,7 +53,9 @@ for _, emp in empleados.iterrows():
     descuento_tardanzas = minutos_tardanza * valor_minuto
 
     total_descuento_asistencia = descuento_faltas + descuento_tardanzas
-    sueldo_imponible = max(0, sueldo_basico - total_descuento_asistencia)
+
+    # El sueldo imponible incluye el básico + bono - descuentos de asistencia
+    sueldo_imponible = max(0, (sueldo_basico + bono) - total_descuento_asistencia)
 
     descuento_afp = sueldo_imponible * 0.1319
     neto_a_pagar = sueldo_imponible - descuento_afp
@@ -61,6 +66,7 @@ for _, emp in empleados.iterrows():
         'EMPLEADO': nombre,
         'CARGO': cargo,
         'SUELDO BÁSICO (S/)': round(sueldo_basico, 2),
+        'BONUS (S/)': round(bono, 2),
         'FALTAS (Días)': cant_faltas,
         'TARDANZAS (Nro)': cant_tardanzas,
         'DESC. FALTAS (S/)': round(descuento_faltas, 2),
@@ -77,7 +83,7 @@ df_boletas = pd.DataFrame(boletas_data)
 with pd.ExcelWriter(excel_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
     df_boletas.to_excel(writer, sheet_name='Boletas_de_Pago', index=False)
 
-print("Pestaña 'Boletas_de_Pago' generada exitosamente.")
+print("Pestaña 'Boletas_de_Pago' generada exitosamente con la columna de BONUS.")
 
 # 4. Configuración del Envío de Correo Electrónico
 REMITENTE = "deividguett@gmail.com"
@@ -93,7 +99,7 @@ cuerpo = """
 Estimado Equipo de Recursos Humanos,
 
 Se ha procesado exitosamente la planilla del mes mediante el Pipeline de Jenkins.
-Adjunto a este correo encontrarán el archivo Excel actualizado con la pestaña 'Boletas_de_Pago', la cual incluye el detalle de descuentos por tardanzas, faltas, aportes de AFP y neto a pagar por colaborador.
+Adjunto a este correo encontrarán el archivo Excel actualizado con la pestaña 'Boletas_de_Pago', la cual incluye la columna de Bonus (S/ 200.00), detalle de descuentos por tardanzas, faltas, aportes de AFP y neto a pagar por colaborador.
 
 Saludos cordiales,
 Sistema Automatizado de Planillas - Jenkins
